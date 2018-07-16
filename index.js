@@ -1,7 +1,8 @@
-const request = require('request')
+const rp = require('request-promise')
 const _config = require('./config')
+const reports = ['Yorke Peninsula', 'Eyre Peninsula']
 
-const main_query = `
+let main_query = `
   select master_id
         ,gz_id
         ,rt_id
@@ -37,10 +38,13 @@ const main_query = `
         ,timezone
         ,last_updated
   from poi_master
-  where tourism_region_name = 'Yorke Peninsula'
+  where tourism_region_name = 
 `
 
-const payload = {
+let query-yorke = main_query + reports[0]
+let query-eyre = main_query + reports[1]
+
+const payload-yorke = {
     "connector": {
       "provider": "postgres",
       "connection": {
@@ -49,11 +53,51 @@ const payload = {
         "username":_config.db.user,
         "password":_config.db.password
       },
-      "table": _config.db.table,
-      "sql_query": main_query
+      "table": _config.db.table.yorke,
+      "sql_query": query-yorke 
     }
+}
 
-    request.post(
+const payload-eyre = {
+    "connector": {
+      "provider": "postgres",
+      "connection": {
+        "server":_config.db.host,
+        "database":_config.db.name,
+        "username":_config.db.user,
+        "password":_config.db.password
+      },
+      "table": _config.db.table.eyre,
+      "sql_query": query-eyre
+    }
+}
+
+const options_yorke = {
+  method: 'POST',
+  uri: _config.cartoUrl,
+  body: payload-yorke,
+  json: true
+}
+
+const options_eyre = {
+  method: 'POST',
+  uri: _config.cartoUrl,
+  body: payload-eyre,
+  json: true
+}
+
+rp(options_yorke)
+.then((parsedBody) => {
+  console.log('Yorke', JSON.stringify(parsedBody))
+  return rp(options_eyre)
+})
+.then((parsedBody) =>{
+  console.log('Eyre', JSON.stringify(parsedBody))
+}
+.catch(err => {
+  console.log('Error', err)
+})
+    /*request.post(
         {
           url: _config.cartoUrl,
           form: payload
@@ -61,4 +105,4 @@ const payload = {
         function (err, httpResponse, body) {
           console.log(err, body);
         }
-    );
+    ); */
