@@ -1,5 +1,7 @@
 const rp = require('request-promise')
 const _config = require('./config')
+const AWS = require('aws-sdk')
+const sns = new AWS.SNS()
 const reports = ['Yorke Peninsula', 'Eyre Peninsula']
 
 let main_query = `
@@ -86,6 +88,23 @@ const options_eyre = {
   json: true
 }
 
+const stopInstance = ()=> {
+  sns.publish({
+        TopicArn: _config.stopARN, 
+        Message: "Stopping Carto instance"
+    }, function(err, data) {
+        if(err) {
+            console.error('error publishing to SNS');
+            console.log(JSON.stringify(err))  
+            callback(null, err);
+        } else {
+            console.info('message published to SNS');
+            console.log(JSON.stringify(data))  
+            callback(null, data);
+        }
+  }); 
+}
+
 rp(options_yorke)
 .then((parsedBody) => {
   console.log('Yorke', JSON.stringify(parsedBody))
@@ -93,9 +112,12 @@ rp(options_yorke)
 })
 .then((parsedBody) =>{
   console.log('Eyre', JSON.stringify(parsedBody))
+  stopInstance()
+
 }
 .catch(err => {
   console.log('Error', err)
+  stopInstance()
 })
     /*request.post(
         {
